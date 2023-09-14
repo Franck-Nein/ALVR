@@ -120,7 +120,7 @@ jobs:
           asset_content_type: application/zip
 
   build_linux_streamer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [prepare_release]
     steps:
       - uses: actions/checkout@v2
@@ -135,9 +135,13 @@ jobs:
         env:
           RUST_BACKTRACE: 1
         run: |
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+          wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
           sudo apt-get update
-          sudo apt-get install libfuse2 build-essential pkg-config nasm libva-dev libdrm-dev libvulkan-dev libx264-dev libx265-dev cmake libasound2-dev libjack-jackd2-dev libxrandr-dev libunwind-dev libffmpeg-nvenc-dev nvidia-cuda-toolkit libgtk-3-dev
+          sudo apt-get install libfuse2 build-essential pkg-config nasm libva-dev libdrm-dev vulkan-sdk libvulkan-dev libx264-dev libx265-dev cmake libasound2-dev libjack-jackd2-dev libxrandr-dev libunwind-dev libffmpeg-nvenc-dev nvidia-cuda-toolkit libgtk-3-dev
           git clone https://github.com/FFmpeg/nv-codec-headers.git
+          
+          
           cd nv-codec-headers/
           sudo make install
           cd ..
@@ -149,6 +153,8 @@ jobs:
         env:
           RUST_BACKTRACE: 1
         run: cargo xtask package-streamer
+        
+        
 
       - name: Upload streamer for Linux
         uses: actions/upload-release-asset@v1
@@ -186,7 +192,7 @@ jobs:
           asset_content_type: application/octet-stream
 
   build_flatpak_bundle:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [prepare_release]
     steps:
       - uses: actions/checkout@v2
@@ -197,8 +203,20 @@ jobs:
         env:
           RUST_BACKTRACE: 1
         run: |
+          sudo add-apt-repository ppa:flatpak/stable
+          sudo add-apt-repository 'deb https://download.mono-project.com/repo/ubuntu stable-bionic main' # Needed for updates to work
           sudo apt-get update
-          sudo apt-get install flatpak flatpak-builder
+          sudo apt-get install -y libglib2.0-dev attr automake gettext autopoint bison  dbus gtk-doc-tools \
+          libfuse-dev ostree libostree-dev libarchive-dev libzstd-dev libcap-dev libattr1-dev libdw-dev libelf-dev python3-pyparsing \
+          libjson-glib-dev shared-mime-info desktop-file-utils libpolkit-agent-1-dev libpolkit-gobject-1-dev \
+          libseccomp-dev libsoup2.4-dev libcurl4-openssl-dev libsystemd-dev libxml2-utils libgpgme11-dev gobject-introspection \
+          libgirepository1.0-dev libappstream-dev libdconf-dev clang e2fslibs-dev
+          sudo apt-get install libappstream-glib8 libappstream-glib-dev
+          git clone -b flatpak-1.12.x https://github.com/flatpak/flatpak/ --recurse-submodules
+          cd flatpak
+          ./autogen.sh
+          ./configure
+          sudo make install
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Build and package ALVR flatpak (.flatpak)
