@@ -218,6 +218,7 @@ jobs:
           ./configure
           sudo make install
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo apt-get install flatpak-builder
 
       - name: Build and package ALVR flatpak (.flatpak)
         id: build_flatpak
